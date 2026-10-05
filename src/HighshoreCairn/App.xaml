@@ -1,0 +1,15 @@
+<Application x:Class="HighshoreCairn.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- [0] colors of the current theme: replaced at runtime by ThemeService (light / dark) -->
+                <ResourceDictionary Source="Themes/Light.xaml" />
+                <!-- shared styles and control templates: they read the colors with DynamicResource -->
+                <ResourceDictionary Source="Themes/Styles.xaml" />
+                <ResourceDictionary Source="Themes/Controls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

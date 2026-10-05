@@ -1,0 +1,304 @@
+<UserControl x:Class="HighshoreCairn.Views.WhiteboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="clr-namespace:HighshoreCairn.Views">
+
+    <UserControl.Resources>
+        <!-- Tool bar buttons never take the keyboard focus: shortcuts keep working on the canvas -->
+        <Style x:Key="Bar" TargetType="Button" BasedOn="{StaticResource Btn}">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Margin" Value="0,2,4,2" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="Divider" TargetType="Border">
+            <Setter Property="Width" Value="1" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="Margin" Value="6,0,10,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Background" Value="{DynamicResource Brush.Border}" />
+        </Style>
+
+        <!-- Small square showing the current line color ("automatic" = theme text color) -->
+        <Style x:Key="StrokeSwatch" TargetType="Border">
+            <Setter Property="Background" Value="{Binding StrokeColor, Converter={StaticResource HexToBrush}}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsStrokeAuto}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Text}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="FillSwatch" TargetType="Border">
+            <Setter Property="Background" Value="{Binding FillColor, Converter={StaticResource HexToBrush}}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding HasFill}" Value="False">
+                    <Setter Property="Background" Value="Transparent" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <DockPanel>
+
+        <!-- ===================== Tool bar ===================== -->
+        <Border DockPanel.Dock="Top" Style="{StaticResource Card}" Padding="8,5" Margin="0,0,0,8">
+            <DockPanel>
+            <!-- Graph view of the linked elements -->
+            <ToggleButton DockPanel.Dock="Right" Style="{StaticResource ToolToggle}" Width="Auto" Height="28" Padding="10,0" Margin="6,2,0,2"
+                          VerticalAlignment="Top" Content="Graph" IsChecked="{Binding IsGraphMode, Mode=TwoWay}"
+                          ToolTip="Graph view: the linked, starred and referenced elements as a zoomable graph. Click a node to see the element and its references." />
+            <WrapPanel IsEnabled="{Binding IsBoardMode}">
+
+                <!-- Boards of the project -->
+                <ComboBox Width="150" Margin="0,2,4,2" VerticalAlignment="Center" Focusable="False"
+                          ItemsSource="{Binding Boards}" DisplayMemberPath="Name"
+                          SelectedItem="{Binding SelectedBoard, Mode=TwoWay}" ToolTip="Whiteboards of this project" />
+                <Button Style="{StaticResource Bar}" Content="New" Command="{Binding NewBoardCommand}" ToolTip="New whiteboard" />
+                <Button Style="{StaticResource Bar}" Content="Rename" Command="{Binding RenameBoardCommand}" />
+                <Button Style="{StaticResource Bar}" Content="Delete board" Command="{Binding DeleteBoardCommand}" />
+                <Border Style="{StaticResource Divider}" />
+
+                <!-- Favorite: the star of the selected element(s). Starred elements stand out in the graph view. -->
+                <Button Style="{StaticResource Btn.Icon}" Focusable="False" Width="30" Height="30" Margin="0,2,0,2" VerticalAlignment="Center"
+                        Command="{Binding ToggleFavoriteCommand}" IsEnabled="{Binding HasElementSelection}"
+                        ToolTip="Favorite: mark the selected element with a star (it is shown on its node in the Graph view)">
+                    <Path x:Name="StarIcon" Width="20" Height="20" StrokeThickness="1.3" StrokeLineJoin="Round"
+                          Data="M10,1.8 L12.5,7.2 L18.4,7.9 L14,11.9 L15.2,17.7 L10,14.8 L4.8,17.7 L6,11.9 L1.6,7.9 L7.5,7.2 Z">
+                        <Path.Style>
+                            <Style TargetType="Path">
+                                <Setter Property="Stroke" Value="{DynamicResource Brush.Text}" />
+                                <Setter Property="Fill" Value="Transparent" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsFavorite}" Value="True">
+                                        <Setter Property="Fill" Value="{DynamicResource Brush.Star}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding HasElementSelection}" Value="False">
+                                        <Setter Property="Stroke" Value="{DynamicResource Brush.TextMuted}" />
+                                        <Setter Property="Opacity" Value="0.55" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Path.Style>
+                    </Path>
+                </Button>
+                <Border Style="{StaticResource Divider}" Margin="8,0,10,0" />
+
+                <!-- Tools -->
+                <ItemsControl ItemsSource="{Binding Tools}" VerticalAlignment="Center" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <RadioButton Style="{StaticResource ToolToggle}" GroupName="WhiteboardTools"
+                                         IsChecked="{Binding IsSelected, Mode=OneWay}" Command="{Binding SelectCommand}"
+                                         ToolTip="{Binding Name}">
+                                <Path Width="20" Height="20" Data="{Binding Icon, Converter={StaticResource ToGeometry}}"
+                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"
+                                      StrokeThickness="1.4" StrokeLineJoin="Round"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                            </RadioButton>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Border Style="{StaticResource Divider}" />
+
+                <!-- Style: line color, fill color, thickness, font size -->
+                <Menu VerticalAlignment="Center" Margin="0,2,4,2" Focusable="False">
+                    <MenuItem Padding="6,4" ToolTip="Color of lines, outlines and text">
+                        <MenuItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource StrokeSwatch}" Width="16" Height="16" CornerRadius="3"
+                                        BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" />
+                                <TextBlock Text="Line ▾" Margin="6,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </MenuItem.Header>
+                        <MenuItem Header="Automatic (follows the theme)" Command="{Binding StrokeAutoCommand}"
+                                  IsChecked="{Binding IsStrokeAuto, Mode=OneWay}" StaysOpenOnClick="True" />
+                        <Separator />
+                        <ListBox Style="{StaticResource SwatchList}" Width="216" Margin="2" ItemsSource="{Binding Colors}"
+                                 SelectedItem="{Binding StrokeColor, Mode=TwoWay}" />
+                    </MenuItem>
+                    <MenuItem Padding="6,4" ToolTip="Fill color of shapes, closed drawings, text boxes and notes">
+                        <MenuItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <Grid Width="16" Height="16">
+                                    <Border Style="{StaticResource FillSwatch}" CornerRadius="3"
+                                            BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" />
+                                    <!-- red slash = no fill -->
+                                    <Line X1="2" Y1="14" X2="14" Y2="2" Stroke="{DynamicResource Brush.Danger}" StrokeThickness="1.5"
+                                          Visibility="{Binding HasFill, Converter={StaticResource InvBoolToVis}}" />
+                                </Grid>
+                                <TextBlock Text="Fill ▾" Margin="6,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </MenuItem.Header>
+                        <MenuItem Header="No fill" Command="{Binding FillNoneCommand}" StaysOpenOnClick="True" />
+                        <Separator />
+                        <ListBox Style="{StaticResource SwatchList}" Width="216" Margin="2" ItemsSource="{Binding Colors}"
+                                 SelectedItem="{Binding FillColor, Mode=TwoWay}" />
+                    </MenuItem>
+                </Menu>
+
+                <ComboBox Width="74" Margin="0,2,4,2" VerticalAlignment="Center" Focusable="False"
+                          ItemsSource="{Binding ThicknessOptions}" SelectedItem="{Binding Thickness, Mode=TwoWay}"
+                          ItemStringFormat="{}{0} px" ToolTip="Line thickness" />
+                <ComboBox Width="74" Margin="0,2,4,2" VerticalAlignment="Center" Focusable="False"
+                          ItemsSource="{Binding FontSizeOptions}" SelectedItem="{Binding FontSize, Mode=TwoWay}"
+                          ItemStringFormat="{}{0} pt" ToolTip="Text size" />
+                <Border Style="{StaticResource Divider}" />
+
+                <!-- Connectors (kept together so the group wraps as a whole) -->
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource Muted}" Text="Links" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <ComboBox Width="74" Margin="0,2,6,2" VerticalAlignment="Center" Focusable="False"
+                              ItemsSource="{Binding ConnectorThicknessOptions}" SelectedItem="{Binding ConnectorThickness, Mode=TwoWay}"
+                              ItemStringFormat="{}{0} px" ToolTip="Thickness of the connecting lines (selected link, or the next ones)" />
+                    <CheckBox Content="Arrow" IsChecked="{Binding ConnectorArrow, Mode=TwoWay}" VerticalAlignment="Center" Focusable="False"
+                              ToolTip="Arrow head on the connecting lines" />
+                    <Border Style="{StaticResource Divider}" />
+                </StackPanel>
+
+                <!-- Arrange -->
+                <Button Style="{StaticResource Bar}" Content="Merge" Command="{Binding GroupCommand}" IsEnabled="{Binding CanGroup}"
+                        ToolTip="Merge the selected elements into one (Ctrl+G)" />
+                <Button Style="{StaticResource Bar}" Content="Split" Command="{Binding UngroupCommand}" IsEnabled="{Binding CanUngroup}"
+                        ToolTip="Split a merged element back into its parts (Ctrl+Shift+G)" />
+                <Button Style="{StaticResource Bar}" Content="Duplicate" Command="{Binding DuplicateCommand}" IsEnabled="{Binding HasElementSelection}"
+                        ToolTip="Ctrl+D" />
+                <Button Style="{StaticResource Bar}" Content="To front" Command="{Binding FrontCommand}" IsEnabled="{Binding HasElementSelection}" />
+                <Button Style="{StaticResource Bar}" Content="To back" Command="{Binding BackCommand}" IsEnabled="{Binding HasElementSelection}" />
+                <Button Style="{StaticResource Bar}" Content="Delete" Command="{Binding DeleteCommand}" IsEnabled="{Binding HasSelection}"
+                        Foreground="{DynamicResource Brush.Danger}" ToolTip="Del" />
+                <Border Style="{StaticResource Divider}" />
+
+                <Button Style="{StaticResource Bar}" Content="Undo" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip="Ctrl+Z" />
+                <Button Style="{StaticResource Bar}" Content="Redo" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip="Ctrl+Y" />
+                <Border Style="{StaticResource Divider}" />
+
+                <Button Style="{StaticResource Bar}" Content="Image…" Command="{Binding AddImageCommand}"
+                        ToolTip="Add an image file. You can also drop image files on the board or paste a screenshot with Ctrl+V." />
+                <Button Style="{StaticResource Bar}" Content="Export PNG" Command="{Binding ExportCommand}" />
+                <Border Style="{StaticResource Divider}" />
+
+                <!-- View -->
+                <CheckBox Content="Grid" IsChecked="{Binding ShowGrid, Mode=TwoWay}" VerticalAlignment="Center" Focusable="False" Margin="0,0,10,0" />
+                <Button Style="{StaticResource Bar}" Content="−" Command="{Binding ZoomOutCommand}" Padding="9,4" ToolTip="Zoom out (mouse wheel)" />
+                <Button Style="{StaticResource Bar}" Content="{Binding ZoomText}" Command="{Binding ZoomResetCommand}" MinWidth="52" ToolTip="Back to 100%" />
+                <Button Style="{StaticResource Bar}" Content="+" Command="{Binding ZoomInCommand}" Padding="9,4" ToolTip="Zoom in (mouse wheel)" />
+                <Button Style="{StaticResource Bar}" Content="Fit" Command="{Binding FitCommand}" ToolTip="Show the whole drawing" />
+            </WrapPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ===================== Hints / status ===================== -->
+        <DockPanel DockPanel.Dock="Bottom" Margin="2,6,2,0">
+            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Muted}" Text="{Binding CountText}" Margin="12,0,0,0" />
+            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Muted}" Text="{Binding StatusText}" Margin="12,0,0,0"
+                       Foreground="{DynamicResource Brush.Link}" />
+            <TextBlock Style="{StaticResource Muted}" Text="{Binding Hint}" TextTrimming="CharacterEllipsis" />
+        </DockPanel>
+
+        <!-- ===================== Drawing surface ===================== -->
+        <Border BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+            <Grid>
+                <v:WhiteboardCanvas x:Name="Board" IsEnabled="{Binding IsBoardMode}" />
+
+                <!-- ===================== Graph view (covers the drawing while it is on) ===================== -->
+                <Grid Background="{DynamicResource Brush.Canvas}" Visibility="{Binding IsGraphMode, Converter={StaticResource BoolToVis}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <v:GraphView x:Name="Graph" Grid.Column="0" Graph="{Binding Graph}" SelectedId="{Binding GraphNodeId, Mode=OneWay}" />
+                    <TextBlock Grid.Column="0" Style="{StaticResource Muted}" Text="{Binding GraphSummary}" Margin="12,10"
+                               HorizontalAlignment="Left" VerticalAlignment="Top" IsHitTestVisible="False" TextWrapping="Wrap" />
+                    <TextBlock Grid.Column="0" Style="{StaticResource Muted}" Margin="12,10" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                               IsHitTestVisible="False"
+                               Text="Click a node to preview the element and its references · double-click to show it on the board · wheel to zoom · drag to move" />
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8">
+                        <Button Style="{StaticResource Bar}" Content="−" Padding="9,4" Click="Graph_ZoomOut" ToolTip="Zoom out" />
+                        <Button Style="{StaticResource Bar}" Content="+" Padding="9,4" Click="Graph_ZoomIn" ToolTip="Zoom in" />
+                        <Button Style="{StaticResource Bar}" Content="Fit" Click="Graph_Fit" ToolTip="Show the whole graph" />
+                    </StackPanel>
+
+                    <!-- Preview of the clicked element -->
+                    <Border Grid.Column="1" Width="320" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1,0,0,0"
+                            Background="{DynamicResource Brush.Surface}"
+                            Visibility="{Binding HasGraphSelection, Converter={StaticResource BoolToVis}}">
+                        <DockPanel Margin="14,12,14,12">
+                            <StackPanel DockPanel.Dock="Top">
+                                <TextBlock Style="{StaticResource H2}" Text="{Binding GraphTitle}" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Style="{StaticResource Muted}" Text="{Binding GraphInfo}" TextWrapping="Wrap" Margin="0,2,0,8" />
+                                <Button Style="{StaticResource Bar}" Content="Show on board" Command="{Binding ShowOnBoardCommand}" HorizontalAlignment="Left"
+                                        ToolTip="Back to the drawing, with this element selected and centered" />
+                            </StackPanel>
+                            <Border DockPanel.Dock="Top" Margin="0,12,0,0" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6"
+                                    Background="{DynamicResource Brush.Canvas}" VerticalAlignment="Top" Padding="4">
+                                <Image x:Name="GraphPreview" Stretch="Uniform" StretchDirection="DownOnly" MaxHeight="230"
+                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                            </Border>
+
+                            <!-- References of the element: tasks and documents. Click = go there; x = remove the link. -->
+                            <DockPanel Margin="0,14,0,0">
+                                <TextBlock DockPanel.Dock="Top" Style="{StaticResource Label}" Margin="0,0,0,4" Text="References"
+                                           ToolTip="Tasks and documents linked to this element. A task can be linked to one element only." />
+                                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0"
+                                            Visibility="{Binding CanEditRefs, Converter={StaticResource BoolToVis}}">
+                                    <Button Style="{StaticResource Bar}" Content="+ Task" Command="{Binding AddCardRefCommand}"
+                                            ToolTip="Link a task of the Kanban board to this element (replaces the element the task was linked to)" />
+                                    <Button Style="{StaticResource Bar}" Content="+ Document" Command="{Binding AddDocRefCommand}"
+                                            ToolTip="Link a document of the Documentation area to this element" />
+                                </StackPanel>
+                                <Grid>
+                                    <TextBlock Style="{StaticResource Muted}" Text="No references yet." VerticalAlignment="Top"
+                                               Visibility="{Binding HasGraphRefs, Converter={StaticResource InvBoolToVis}}" />
+                                    <ScrollViewer Focusable="False" VerticalScrollBarVisibility="Auto">
+                                        <ItemsControl ItemsSource="{Binding GraphRefs}" Focusable="False">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <DockPanel Margin="0,0,0,3">
+                                                        <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Focusable="False" Width="24" Height="24"
+                                                                Command="{Binding RemoveCommand}" ToolTip="Remove this reference">
+                                                            <Path Data="M5,5 L11,11 M11,5 L5,11" Stroke="{DynamicResource Brush.TextMuted}" StrokeThickness="1.4"
+                                                                  Width="16" Height="16" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                                        </Button>
+                                                        <Button Style="{StaticResource Btn.Ghost}" Focusable="False" Padding="6,4" HorizontalContentAlignment="Left"
+                                                                Command="{Binding OpenCommand}" ToolTip="{Binding ToolTip}">
+                                                            <DockPanel>
+                                                                <!-- task: a card with a check; document: a sheet -->
+                                                                <Path DockPanel.Dock="Left" Data="M2,3 L14,3 L14,13 L2,13 Z M5,8 L7.2,10.2 L11,6"
+                                                                      Stroke="{DynamicResource Brush.Primary}" StrokeThickness="1.3" StrokeLineJoin="Round"
+                                                                      Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center"
+                                                                      Visibility="{Binding IsTask, Converter={StaticResource BoolToVis}}" />
+                                                                <Path DockPanel.Dock="Left" Data="M4,1.5 L9.5,1.5 L13,5 L13,14.5 L4,14.5 Z M9.5,1.5 L9.5,5 L13,5"
+                                                                      Stroke="{DynamicResource Brush.Primary}" StrokeThickness="1.3" StrokeLineJoin="Round"
+                                                                      Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center"
+                                                                      Visibility="{Binding IsDocument, Converter={StaticResource BoolToVis}}" />
+                                                                <TextBlock x:Name="RefLabel" Text="{Binding Label}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                                            </DockPanel>
+                                                        </Button>
+                                                    </DockPanel>
+                                                    <DataTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding IsMissing}" Value="True">
+                                                            <Setter TargetName="RefLabel" Property="TextDecorations" Value="Strikethrough" />
+                                                            <Setter TargetName="RefLabel" Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
+                                                        </DataTrigger>
+                                                    </DataTemplate.Triggers>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Grid>
+                            </DockPanel>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Border>
+    </DockPanel>
+</UserControl>

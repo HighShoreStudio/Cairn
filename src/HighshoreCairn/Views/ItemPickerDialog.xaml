@@ -1,0 +1,40 @@
+<Window x:Class="HighshoreCairn.Views.ItemPickerDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding Title}"
+        Style="{StaticResource WindowBase}"
+        Width="460" Height="460" MinWidth="340" MinHeight="300"
+        ShowInTaskbar="False"
+        FocusManager.FocusedElement="{Binding ElementName=FilterBox}">
+    <!-- Picks one item of a list (a task or a document to link). DataContext = ItemPickerViewModel. -->
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Style="{StaticResource DialogFooter}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Style="{StaticResource Btn}" Content="Cancel" IsCancel="True" MinWidth="84" Margin="0,0,8,0" />
+                <Button Style="{StaticResource Btn.Primary}" Content="{Binding OkText}" IsDefault="True" Command="{Binding OkCommand}" MinWidth="84" />
+            </StackPanel>
+        </Border>
+        <DockPanel Margin="18,14,18,14">
+            <TextBlock DockPanel.Dock="Top" Style="{StaticResource H2}" Text="{Binding Title}" />
+            <TextBox DockPanel.Dock="Top" x:Name="FilterBox" Margin="0,10,0,8" Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="Type to filter the list" PreviewKeyDown="Filter_PreviewKeyDown" />
+            <Grid>
+                <ListBox x:Name="List" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected, Mode=TwoWay}"
+                         MouseDoubleClick="List_MouseDoubleClick" BorderBrush="{DynamicResource Brush.Border}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Style="{StaticResource Muted}" Text="{Binding Detail}" TextTrimming="CharacterEllipsis"
+                                           Visibility="{Binding HasDetail, Converter={StaticResource BoolToVis}}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <TextBlock Style="{StaticResource Muted}" Text="{Binding EmptyText}" TextWrapping="Wrap" TextAlignment="Center"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24"
+                           Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}" />
+            </Grid>
+        </DockPanel>
+    </DockPanel>
+</Window>

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Lets the project be built from any OS (the result is still a Windows app). -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <AssemblyName>Cairn</AssemblyName>
+    <RootNamespace>HighshoreCairn</RootNamespace>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <Version>1.3.0</Version>
+    <Company>Highshore Studio</Company>
+    <Product>Cairn</Product>
+    <Description>Personal offline Kanban board, whiteboard, documentation and roadmap</Description>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\app.ico" />
+    <!-- The built-in icon set (Ionicons 7.4, MIT license): a zip of SVG files read by Services/IconLibrary.cs. -->
+    <EmbeddedResource Include="Assets\ionicons.zip" LogicalName="ionicons.zip" />
+    <!-- WPF projects drop System.IO from the implicit usings: the storage code uses it everywhere. -->
+    <Using Include="System.IO" />
+  </ItemGroup>
+
+</Project>

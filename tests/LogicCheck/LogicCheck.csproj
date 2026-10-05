@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Cross-platform check of the non-UI code (Models, Services, ViewModels). Not part of the app. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <NuGetAudit>false</NuGetAudit>
+    <RootNamespace>LogicCheck</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\src\HighshoreCairn\Models\**\*.cs" LinkBase="Models" />
+    <Compile Include="..\..\src\HighshoreCairn\Services\**\*.cs" Exclude="..\..\src\HighshoreCairn\Services\DpapiProtector.cs" LinkBase="Services" />
+    <Compile Include="..\..\src\HighshoreCairn\ViewModels\**\*.cs" LinkBase="ViewModels" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,146 @@
+<UserControl x:Class="HighshoreCairn.Views.RichDocEditor"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Editor of a rich text (.rtf) document. DataContext = DocumentViewModel (its Text is the RTF source).
+         The page is always white with black text, like a sheet of paper: the colors chosen by the user
+         then look the same in the light and in the dark theme, and in Word. -->
+
+    <UserControl.Resources>
+        <Style x:Key="Tool" TargetType="Button" BasedOn="{StaticResource Btn.Ghost}">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Padding" Value="7,3" />
+            <Setter Property="Margin" Value="0,1,1,1" />
+            <Setter Property="MinWidth" Value="26" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="ToolDivider" TargetType="Border">
+            <Setter Property="Width" Value="1" />
+            <Setter Property="Height" Value="18" />
+            <Setter Property="Margin" Value="5,0,6,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Background" Value="{DynamicResource Brush.Border}" />
+        </Style>
+
+        <!-- Alignment icons: four lines -->
+        <Style x:Key="LinesIcon" TargetType="Path">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Stroke" Value="{DynamicResource Brush.Text}" />
+            <Setter Property="StrokeThickness" Value="1.4" />
+            <Setter Property="StrokeStartLineCap" Value="Round" />
+            <Setter Property="StrokeEndLineCap" Value="Round" />
+        </Style>
+    </UserControl.Resources>
+
+    <DockPanel Background="{DynamicResource Brush.Surface}">
+
+        <!-- ===================== Tool bar ===================== -->
+        <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="6,3">
+            <DockPanel>
+                <Menu DockPanel.Dock="Right" VerticalAlignment="Center" Focusable="False">
+                    <MenuItem Header="More ▾" Padding="7,4">
+                        <MenuItem Header="Save now" Command="{Binding SaveCommand}" InputGestureText="Ctrl+S" />
+                        <MenuItem Header="{Binding ConvertText}" Command="{Binding ConvertCommand}" IsEnabled="{Binding CanConvert}"
+                                  ToolTip="Turns this document into a markdown document. Colors, fonts, sizes, underline and alignment are lost." />
+                        <Separator />
+                        <MenuItem Header="Open with the default application" Command="{Binding OpenExternalCommand}" />
+                    </MenuItem>
+                </Menu>
+
+                <WrapPanel>
+                    <Border Background="{DynamicResource Brush.Chip}" CornerRadius="4" Padding="7,2" Margin="0,1,8,1" VerticalAlignment="Center"
+                            ToolTip="Rich text document (.rtf)">
+                        <TextBlock Text="Rich Text" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextMuted}" />
+                    </Border>
+
+                    <Button Style="{StaticResource Tool}" Click="OnTool" Tag="bold" ToolTip="Bold (Ctrl+B)">
+                        <TextBlock Text="B" FontWeight="Bold" />
+                    </Button>
+                    <Button Style="{StaticResource Tool}" Click="OnTool" Tag="italic" ToolTip="Italic (Ctrl+I)">
+                        <TextBlock Text="I" FontStyle="Italic" FontFamily="Georgia" />
+                    </Button>
+                    <Button Style="{StaticResource Tool}" Click="OnTool" Tag="underline" ToolTip="Underline (Ctrl+U)">
+                        <TextBlock Text="U" TextDecorations="Underline" />
+                    </Button>
+                    <Button Style="{StaticResource Tool}" Click="OnTool" Tag="strike" ToolTip="Strikethrough">
+                        <TextBlock Text="S" TextDecorations="Strikethrough" />
+                    </Button>
+                    <Border Style="{StaticResource ToolDivider}" />
+
+                    <ComboBox x:Name="FontBox" Width="132" Margin="0,1,4,1" VerticalAlignment="Center" Focusable="False"
+                              SelectionChanged="Font_SelectionChanged" ToolTip="Font" />
+                    <ComboBox x:Name="SizeBox" Width="58" Margin="0,1,4,1" VerticalAlignment="Center" Focusable="False"
+                              SelectionChanged="Size_SelectionChanged" ToolTip="Text size (points)" />
+
+                    <Menu VerticalAlignment="Center" Margin="0,1,2,1" Focusable="False">
+                        <MenuItem Padding="6,3" ToolTip="Text color">
+                            <MenuItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <StackPanel>
+                                        <TextBlock Text="A" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center" LineHeight="13" LineStackingStrategy="BlockLineHeight" />
+                                        <Border x:Name="TextColorBar" Height="3" Width="14" Background="#E5484D" />
+                                    </StackPanel>
+                                    <TextBlock Text=" ▾" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </MenuItem.Header>
+                            <MenuItem Header="Automatic (black)" Click="TextColor_Auto" />
+                            <Separator />
+                            <ListBox x:Name="TextColors" Style="{StaticResource SwatchList}" Width="216" Margin="2" SelectionChanged="TextColor_Changed" />
+                        </MenuItem>
+                        <MenuItem Padding="6,3" ToolTip="Highlight color">
+                            <MenuItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <Border x:Name="HighlightBar" Width="16" Height="14" CornerRadius="2" Background="#FFE08A"
+                                            BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
+                                        <TextBlock Text="a" FontSize="10" Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-2,0,0" />
+                                    </Border>
+                                    <TextBlock Text=" ▾" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </MenuItem.Header>
+                            <MenuItem Header="No highlight" Click="Highlight_None" />
+                            <Separator />
+                            <ListBox x:Name="HighlightColors" Style="{StaticResource SwatchList}" Width="216" Margin="2" SelectionChanged="Highlight_Changed" />
+                        </MenuItem>
+                    </Menu>
+                    <Border Style="{StaticResource ToolDivider}" />
+
+                    <Button Style="{StaticResource Tool}" Click="OnTool" Tag="left" ToolTip="Align left (Ctrl+L)">
+                        <Path Style="{StaticResource LinesIcon}" Data="M2,3.5 L14,3.5 M2,6.5 L9,6.5 M2,9.5 L14,9.5 M2,12.5 L9,12.5" />
+                    </Button>
+                    <Button Style="{StaticResource Tool}" Click="OnTool" Tag="center" ToolTip="Center (Ctrl+E)">
+                        <Path Style="{StaticResource LinesIcon}" Data="M2,3.5 L14,3.5 M4.5,6.5 L11.5,6.5 M2,9.5 L14,9.5 M4.5,12.5 L11.5,12.5" />
+                    </Button>
+                    <Button Style="{StaticResource Tool}" Click="OnTool" Tag="right" ToolTip="Align right (Ctrl+R)">
+                        <Path Style="{StaticResource LinesIcon}" Data="M2,3.5 L14,3.5 M7,6.5 L14,6.5 M2,9.5 L14,9.5 M7,12.5 L14,12.5" />
+                    </Button>
+                    <Button Style="{StaticResource Tool}" Click="OnTool" Tag="justify" ToolTip="Justify (Ctrl+J)">
+                        <Path Style="{StaticResource LinesIcon}" Data="M2,3.5 L14,3.5 M2,6.5 L14,6.5 M2,9.5 L14,9.5 M2,12.5 L14,12.5" />
+                    </Button>
+                    <Border Style="{StaticResource ToolDivider}" />
+
+                    <Button Style="{StaticResource Tool}" Click="OnTool" Tag="ul" Content="• List" ToolTip="Bulleted list" />
+                    <Button Style="{StaticResource Tool}" Click="OnTool" Tag="ol" Content="1. List" ToolTip="Numbered list" />
+                    <Button Style="{StaticResource Tool}" Click="OnTool" Tag="outdent" Content="⇤" ToolTip="Decrease the indent" />
+                    <Button Style="{StaticResource Tool}" Click="OnTool" Tag="indent" Content="⇥" ToolTip="Increase the indent" />
+                    <Border Style="{StaticResource ToolDivider}" />
+
+                    <Button Style="{StaticResource Tool}" Click="OnTool" Tag="image" Content="Image" ToolTip="Insert a picture (you can also paste one with Ctrl+V)" />
+                    <Border Style="{StaticResource ToolDivider}" />
+
+                    <Button Style="{StaticResource Tool}" Click="OnTool" Tag="undo" Content="Undo" ToolTip="Ctrl+Z" />
+                    <Button Style="{StaticResource Tool}" Click="OnTool" Tag="redo" Content="Redo" ToolTip="Ctrl+Y" />
+                </WrapPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ===================== The page ===================== -->
+        <RichTextBox x:Name="Box" BorderThickness="0" Padding="18,14" AcceptsTab="True" IsDocumentEnabled="True"
+                     Background="White" Foreground="Black" CaretBrush="Black"
+                     FontFamily="Segoe UI" FontSize="16"
+                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                     TextChanged="Box_TextChanged" SelectionChanged="Box_SelectionChanged" PreviewKeyDown="Box_PreviewKeyDown" />
+    </DockPanel>
+</UserControl>

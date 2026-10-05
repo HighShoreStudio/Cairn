@@ -1,0 +1,347 @@
+<Window x:Class="HighshoreCairn.Views.ProjectSettingsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:h="clr-namespace:HighshoreCairn.Helpers"
+        Title="Project Settings"
+        Style="{StaticResource WindowBase}"
+        Width="640" Height="660" MinWidth="560" MinHeight="480"
+        ShowInTaskbar="False">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Style="{StaticResource DialogFooter}">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Style="{StaticResource Btn}" Content="Cancel" IsCancel="True" MinWidth="84" Margin="0,0,8,0" />
+                    <Button Style="{StaticResource Btn.Primary}" Content="Save" Command="{Binding SaveCommand}" MinWidth="84" />
+                </StackPanel>
+                <TextBlock Foreground="{DynamicResource Brush.Danger}" Text="{Binding Error}" VerticalAlignment="Center" TextWrapping="Wrap"
+                           Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+            </DockPanel>
+        </Border>
+
+        <TabControl Margin="12,12,12,10" Background="{DynamicResource Brush.Surface}" SelectedIndex="{Binding SelectedTab, Mode=TwoWay}">
+
+            <!-- ===================== General ===================== -->
+            <TabItem Header="General" Padding="12,5">
+                <StackPanel Margin="14,6,14,14">
+                    <TextBlock Style="{StaticResource Label}" Text="Name *" />
+                    <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <TextBlock Style="{StaticResource Label}" Text="Description" />
+                    <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"
+                             Height="80" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" />
+
+                    <TextBlock Style="{StaticResource Label}" Text="Color" />
+                    <ListBox Style="{StaticResource SwatchList}" ItemsSource="{Binding Colors}"
+                             SelectedItem="{Binding Color, Mode=TwoWay}" />
+
+                    <TextBlock Style="{StaticResource Label}" Text="Icon (optional)" />
+                    <StackPanel Orientation="Horizontal">
+                        <h:Avatar Square="True" Size="40" Initials="{Binding Initials}" Color="{Binding Color}" Image="{Binding Icon}" Margin="0,0,10,0" />
+                        <Button Style="{StaticResource Btn}" Content="Choose image…" Command="{Binding PickIconCommand}" VerticalAlignment="Center"
+                                ToolTip="Any picture: it is cropped to a square around its center" />
+                        <Button Style="{StaticResource Btn.Ghost}" Content="Remove" Command="{Binding RemoveIconCommand}" Margin="6,0,0,0" VerticalAlignment="Center"
+                                Visibility="{Binding HasIcon, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
+
+                    <TextBlock Style="{StaticResource Label}" Text="Folder" />
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Btn}" Content="Open in Explorer" Command="{Binding OpenFolderCommand}"
+                                Margin="6,0,0,0" />
+                        <TextBox Text="{Binding Folder, Mode=OneWay}" IsReadOnly="True" Background="{DynamicResource Brush.Background}" />
+                    </DockPanel>
+
+                    <!-- Default template for new projects -->
+                    <TextBlock Style="{StaticResource Label}" Text="Template" />
+                    <Button Style="{StaticResource Btn}" Content="Set this project as Default Template" HorizontalAlignment="Left"
+                            Command="{Binding SetTemplateCommand}"
+                            ToolTip="New projects will start with the columns (names, order, colors), tags, saved filters, timer, documentation and roadmap settings of this project. Cards, whiteboards, documents, milestones and custom tasks are not copied." />
+                    <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,5,0,0" Text="{Binding TemplateStatus}" />
+                </StackPanel>
+            </TabItem>
+
+            <!-- ===================== Authorized users ===================== -->
+            <TabItem Header="Users" Padding="12,5">
+                <DockPanel Margin="14,10,14,14">
+                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,10"
+                               Text="Accounts authorized to open this project. They are copied from the accounts of this PC into the project's accounts.json (passwords are stored only as hashes)." />
+
+                    <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Btn}" Content="Add to project" Command="{Binding AddMemberCommand}"
+                                IsEnabled="{Binding HasAvailableAccounts}" Margin="6,0,0,0" />
+                        <ComboBox ItemsSource="{Binding AvailableAccounts}" DisplayMemberPath="Username"
+                                  SelectedItem="{Binding SelectedAvailable, Mode=TwoWay}"
+                                  IsEnabled="{Binding HasAvailableAccounts}"
+                                  ToolTip="Accounts of this PC that are not in the project yet" />
+                    </DockPanel>
+
+                    <ScrollViewer Focusable="False" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Members}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource Card}" CornerRadius="8" Padding="10,7" Margin="0,0,0,6">
+                                        <DockPanel>
+                                            <h:Avatar DockPanel.Dock="Left" Initials="{Binding Initials}" Color="{Binding AvatarColor}" Image="{Binding AvatarImage}" Size="30"
+                                                      Margin="0,0,10,0" />
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Danger}" Content="Remove" Padding="8,3"
+                                                    VerticalAlignment="Center"
+                                                    Visibility="{Binding CanRemove, Converter={StaticResource BoolToVis}}"
+                                                    Command="{Binding DataContext.RemoveMemberCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}" />
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Username}" FontWeight="SemiBold" />
+                                                <TextBlock Style="{StaticResource Muted}" Text="{Binding Role}" />
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </TabItem>
+
+            <!-- ===================== Backups ===================== -->
+            <TabItem Header="Backups" Padding="12,5">
+                <DockPanel Margin="14,10,14,14">
+                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,10"
+                               Text="A backup of kanban.json is created automatically when the project is opened and before critical changes (deleting cards or columns, restoring). Only the last 5 are kept, in the backups folder." />
+
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Style="{StaticResource Btn}" Content="Backup now" Command="{Binding BackupNowCommand}" Margin="0,0,6,0" />
+                        <Button Style="{StaticResource Btn}" Content="Restore selected" Command="{Binding RestoreCommand}"
+                                IsEnabled="{Binding HasSelectedBackup}" />
+                    </StackPanel>
+
+                    <ListBox ItemsSource="{Binding Backups}" SelectedItem="{Binding SelectedBackup, Mode=TwoWay}"
+                             DisplayMemberPath="Display" BorderBrush="{DynamicResource Brush.Border}" />
+                </DockPanel>
+            </TabItem>
+
+            <!-- ===================== Tomato timer ===================== -->
+            <TabItem Header="Timer" Padding="12,5">
+                <StackPanel Margin="14,10,14,14">
+                    <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,2"
+                               Text="The tomato timer in the project header alternates focus sessions and breaks. A long break replaces the short one every few sessions." />
+
+                    <Grid Margin="0,4,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Style="{StaticResource Label}" Text="Focus (minutes)" />
+                            <TextBox Text="{Binding FocusMinutes, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Style="{StaticResource Label}" Text="Short break (min)" />
+                            <TextBox Text="{Binding ShortBreakMinutes, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Style="{StaticResource Label}" Text="Long break (min)" />
+                            <TextBox Text="{Binding LongBreakMinutes, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="6">
+                            <TextBlock Style="{StaticResource Label}" Text="Long break every" />
+                            <TextBox Text="{Binding LongBreakEvery, UpdateSourceTrigger=PropertyChanged}" ToolTip="Number of focus sessions before a long break" />
+                        </StackPanel>
+                    </Grid>
+                    <Button Style="{StaticResource Btn.Link}" Content="Back to 25 / 5 / 15 / 4" Command="{Binding ResetTimerCommand}"
+                            HorizontalAlignment="Left" Padding="0,4" Margin="0,2,0,0" />
+
+                    <CheckBox Content="Start the breaks automatically" IsChecked="{Binding AutoStartBreaks, Mode=TwoWay}" Margin="0,10,0,0" />
+                    <CheckBox Content="Start the next focus session automatically" IsChecked="{Binding AutoStartFocus, Mode=TwoWay}" Margin="0,6,0,0" />
+
+                    <TextBlock Style="{StaticResource Label}" Text="Sound at the end of a phase" Margin="0,16,0,4" />
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Btn}" Content="Test" Command="{Binding TestSoundCommand}" Margin="6,0,0,0" MinWidth="64" />
+                        <ComboBox ItemsSource="{Binding Sounds}" SelectedItem="{Binding TimerSound, Mode=TwoWay}" />
+                    </DockPanel>
+                    <DockPanel Margin="0,6,0,0" Visibility="{Binding IsCustomSound, Converter={StaticResource BoolToVis}}">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Btn}" Content="Browse…" Command="{Binding BrowseSoundCommand}" Margin="6,0,0,0" MinWidth="64" />
+                        <TextBox Text="{Binding CustomSoundFile, UpdateSourceTrigger=PropertyChanged}" ToolTip="A .wav file on this PC" />
+                    </DockPanel>
+
+                    <TextBlock Style="{StaticResource Label}" Text="Volume" />
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding VolumeText}" Width="42" TextAlignment="Right" VerticalAlignment="Center" />
+                        <Slider Minimum="0" Maximum="100" SmallChange="5" LargeChange="10" Value="{Binding Volume, Mode=TwoWay}" />
+                    </DockPanel>
+
+                    <CheckBox Content="Hide the timer in the project header" IsChecked="{Binding TimerHidden, Mode=TwoWay}" Margin="0,16,0,0" />
+                </StackPanel>
+            </TabItem>
+
+            <!-- ===================== Documentation ===================== -->
+            <TabItem Header="Documentation" Padding="12,5">
+                <StackPanel Margin="14,10,14,14">
+                    <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap"
+                               Text="The documents live in the 'docs' folder of the project: folders and files there are organized exactly like in the Documentation area of the app." />
+
+                    <TextBlock Style="{StaticResource Label}" Text="External files added to the documentation (Import or drag &amp; drop)" TextWrapping="Wrap" />
+                    <ComboBox ItemsSource="{Binding ImportModes}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                              SelectedValue="{Binding ImportMode, Mode=TwoWay}" />
+                    <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,5,0,0"
+                               Text="A copy belongs to the project (and to its git repository). A link keeps the original file where it is: the project only stores a small pointer to it, and edits change the original." />
+
+                    <TextBlock Style="{StaticResource Label}" Text="Opening a document" Margin="0,16,0,4" />
+                    <CheckBox Content="Open in the Preview view (formatted text with the formatting toolbar)"
+                              IsChecked="{Binding OpenInPreview, Mode=TwoWay}" />
+                    <CheckBox Content="Open in the Markdown view (source text)"
+                              IsChecked="{Binding OpenInMarkdown, Mode=TwoWay}" Margin="0,6,0,0" />
+                </StackPanel>
+            </TabItem>
+
+            <!-- ===================== Roadmap ===================== -->
+            <TabItem Header="Roadmap" Padding="12,5">
+                <ScrollViewer Focusable="False" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="14,10,14,14">
+                        <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap"
+                                   Text="The roadmap (button next to the project name) has one row per tag, plus two special rows. Everything on this page is part of the default template." />
+
+                        <!-- The two special rows -->
+                        <TextBlock Style="{StaticResource Label}" Text="Special rows" Margin="0,14,0,4" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="6" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <CheckBox Grid.Row="0" Grid.Column="0" Content="Show" IsChecked="{Binding ShowMilestones, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,10,0"
+                                      ToolTip="The row of the milestones (releases)" />
+                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding MilestonesName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Name of the milestones row" />
+                            <Menu Grid.Row="0" Grid.Column="2" VerticalAlignment="Center" Margin="6,0,0,0">
+                                <MenuItem Padding="6,4" ToolTip="Color of the row">
+                                    <MenuItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Width="18" Height="18" CornerRadius="4" Background="{Binding MilestonesColor, Converter={StaticResource HexToBrush}}" />
+                                            <TextBlock Text=" ▾" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </MenuItem.Header>
+                                    <ListBox Style="{StaticResource SwatchList}" Width="216" Margin="2" ItemsSource="{Binding Colors}"
+                                             SelectedItem="{Binding MilestonesColor, Mode=TwoWay}" />
+                                </MenuItem>
+                            </Menu>
+
+                            <CheckBox Grid.Row="2" Grid.Column="0" Content="Show" IsChecked="{Binding ShowCustom, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,10,0"
+                                      ToolTip="The row of the tasks that exist only in the roadmap" />
+                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding CustomName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Name of the custom row" />
+                            <Menu Grid.Row="2" Grid.Column="2" VerticalAlignment="Center" Margin="6,0,0,0">
+                                <MenuItem Padding="6,4" ToolTip="Color of the row and of its tasks">
+                                    <MenuItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Width="18" Height="18" CornerRadius="4" Background="{Binding CustomColor, Converter={StaticResource HexToBrush}}" />
+                                            <TextBlock Text=" ▾" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </MenuItem.Header>
+                                    <ListBox Style="{StaticResource SwatchList}" Width="216" Margin="2" ItemsSource="{Binding Colors}"
+                                             SelectedItem="{Binding CustomColor, Mode=TwoWay}" />
+                                </MenuItem>
+                            </Menu>
+                        </Grid>
+
+                        <!-- Milestone types -->
+                        <TextBlock Style="{StaticResource Label}" Text="Milestone types" Margin="0,18,0,2" />
+                        <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,6"
+                                   Text="Icon, name, color and level. Milestones of the same level share a line of the row; lower levels are drawn above. Only the levels in use take space." />
+                        <ItemsControl ItemsSource="{Binding MilestoneTypes}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel Margin="0,0,0,5">
+                                        <Button DockPanel.Dock="Left" Style="{StaticResource Btn.Icon}" Width="32" Height="30" Margin="0,0,6,0"
+                                                Command="{Binding DataContext.PickMilestoneIconCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}" ToolTip="Change the icon">
+                                            <Border Width="26" Height="26" CornerRadius="5" Background="{Binding Color, Converter={StaticResource HexToBrush}}">
+                                                <h:IconView Icon="{Binding Icon}" Folder="{Binding IconFolder}" Foreground="White" Width="17" Height="17" />
+                                            </Border>
+                                        </Button>
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="26" Height="26" Margin="4,0,0,0" ToolTip="Remove this type"
+                                                Command="{Binding DataContext.RemoveMilestoneTypeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}">
+                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE711;" FontSize="10" />
+                                        </Button>
+                                        <ComboBox DockPanel.Dock="Right" Width="58" Margin="6,0,0,0" ItemsSource="{Binding Levels}" SelectedItem="{Binding Level, Mode=TwoWay}"
+                                                  ToolTip="Level (1-5): the line of the milestones row" />
+                                        <Menu DockPanel.Dock="Right" VerticalAlignment="Center" Margin="6,0,0,0">
+                                            <MenuItem Padding="6,4" ToolTip="Color of the milestones of this type">
+                                                <MenuItem.Header>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Border Width="18" Height="18" CornerRadius="4" Background="{Binding Color, Converter={StaticResource HexToBrush}}" />
+                                                        <TextBlock Text=" ▾" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                </MenuItem.Header>
+                                                <ListBox Style="{StaticResource SwatchList}" Width="216" Margin="2" ItemsSource="{Binding Colors}"
+                                                         SelectedItem="{Binding Color, Mode=TwoWay}" />
+                                            </MenuItem>
+                                        </Menu>
+                                        <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" ToolTip="Name of the type" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button Style="{StaticResource Btn}" Content="Add a type" Command="{Binding AddMilestoneTypeCommand}" HorizontalAlignment="Left" Margin="0,2,0,0" />
+
+                        <!-- Options -->
+                        <TextBlock Style="{StaticResource Label}" Text="Options" Margin="0,18,0,4" />
+                        <CheckBox Content="Show the week number next to the date under the mouse" IsChecked="{Binding ShowWeekNumber, Mode=TwoWay}"
+                                  ToolTip="For example: 02 May 2026 - 18w" />
+                        <CheckBox Content="Show the tasks in progress, up to today" IsChecked="{Binding ShowInProgress, Mode=TwoWay}" Margin="0,6,0,0"
+                                  ToolTip="A task with a start and a due date that has no end date yet is drawn up to today (striped when it is late). Turn this off to show only the tasks that have an end or a finish date." />
+                        <CheckBox Content="Set the end date when a task enters a 'done' column" IsChecked="{Binding AutoEndDate, Mode=TwoWay}" Margin="0,6,0,0"
+                                  ToolTip="A card moved to a column marked as 'done' gets the current date and time as end date, unless it already has one." />
+
+                        <!-- Colors of the selected bar -->
+                        <DockPanel Margin="0,18,0,4">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Link}" Padding="6,1" Content="Reset" Command="{Binding ResetSelectionColorsCommand}" />
+                            <TextBlock Style="{StaticResource Label}" Margin="0" Text="Colors of the selected task" VerticalAlignment="Center" TextWrapping="Wrap" />
+                        </DockPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="92" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="6" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource Muted}" Text="Background" Margin="0,0,0,2" />
+                            <TextBlock Grid.Row="0" Grid.Column="3" Style="{StaticResource Muted}" Text="Text" Margin="0,0,0,2" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Light theme" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text}" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SelectionBackLight, UpdateSourceTrigger=PropertyChanged}" ToolTip="Hex color, for example #16324F" />
+                            <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding SelectionTextLight, UpdateSourceTrigger=PropertyChanged}" ToolTip="Hex color, for example #FFFFFF" />
+                            <Border Grid.Row="1" Grid.Column="5" CornerRadius="4" Padding="10,3" VerticalAlignment="Center"
+                                    Background="{Binding SelectionBackLight, Converter={StaticResource HexToBrush}}">
+                                <TextBlock Text="Sample task" FontWeight="SemiBold" FontSize="12" Foreground="{Binding SelectionTextLight, Converter={StaticResource HexToBrush}}" />
+                            </Border>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Dark theme" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text}" />
+                            <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding SelectionBackDark, UpdateSourceTrigger=PropertyChanged}" ToolTip="Hex color, for example #F4F6F8" />
+                            <TextBox Grid.Row="3" Grid.Column="3" Text="{Binding SelectionTextDark, UpdateSourceTrigger=PropertyChanged}" ToolTip="Hex color, for example #0F1720" />
+                            <Border Grid.Row="3" Grid.Column="5" CornerRadius="4" Padding="10,3" VerticalAlignment="Center"
+                                    Background="{Binding SelectionBackDark, Converter={StaticResource HexToBrush}}">
+                                <TextBlock Text="Sample task" FontWeight="SemiBold" FontSize="12" Foreground="{Binding SelectionTextDark, Converter={StaticResource HexToBrush}}" />
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

@@ -1,0 +1,35 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Highshore palette - LIGHT theme (river teal, mountain navy, sunset amber).
+         Both theme files define the same keys; ThemeService swaps one for the other at runtime.
+         Everything else refers to these brushes with {DynamicResource Brush.Xxx}. -->
+    <SolidColorBrush x:Key="Brush.Primary" Color="#1F6F8B" />
+    <SolidColorBrush x:Key="Brush.PrimaryDark" Color="#16324F" />
+    <SolidColorBrush x:Key="Brush.PrimaryLight" Color="#E3F0F4" />
+    <SolidColorBrush x:Key="Brush.Link" Color="#1F6F8B" />
+    <SolidColorBrush x:Key="Brush.Accent" Color="#F2A541" />
+    <SolidColorBrush x:Key="Brush.AccentLight" Color="#FDF1DC" />
+    <SolidColorBrush x:Key="Brush.AccentText" Color="#9A5B00" />
+    <SolidColorBrush x:Key="Brush.Background" Color="#F4F6F8" />
+    <SolidColorBrush x:Key="Brush.Surface" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="Brush.Column" Color="#E7ECF0" />
+    <SolidColorBrush x:Key="Brush.Chip" Color="#EEF1F4" />
+    <SolidColorBrush x:Key="Brush.Border" Color="#D5DBE1" />
+    <SolidColorBrush x:Key="Brush.Text" Color="#1B2733" />
+    <SolidColorBrush x:Key="Brush.TextMuted" Color="#66727F" />
+    <SolidColorBrush x:Key="Brush.Danger" Color="#E5484D" />
+    <SolidColorBrush x:Key="Brush.DangerLight" Color="#FDECEC" />
+    <SolidColorBrush x:Key="Brush.Success" Color="#30A46C" />
+    <SolidColorBrush x:Key="Brush.Input" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="Brush.Popup" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="Brush.Hover" Color="#E9EFF3" />
+    <SolidColorBrush x:Key="Brush.Overlay" Color="#000000" />
+    <SolidColorBrush x:Key="Brush.Scroll" Color="#C3CBD3" />
+    <SolidColorBrush x:Key="Brush.Canvas" Color="#FBFCFD" />
+    <SolidColorBrush x:Key="Brush.Grid" Color="#CFD6DD" />
+    <SolidColorBrush x:Key="Brush.Selection" Color="#0091FF" />
+    <!-- Favorite star: a strong yellow on light, a soft pastel one on dark -->
+    <SolidColorBrush x:Key="Brush.Star" Color="#F2B705" />
+
+</ResourceDictionary>

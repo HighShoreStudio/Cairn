@@ -1,0 +1,35 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Highshore palette - DARK theme.
+         Both theme files define the same keys; ThemeService swaps one for the other at runtime.
+         Everything else refers to these brushes with {DynamicResource Brush.Xxx}. -->
+    <SolidColorBrush x:Key="Brush.Primary" Color="#2B88A8" />
+    <SolidColorBrush x:Key="Brush.PrimaryDark" Color="#E6EDF3" />
+    <SolidColorBrush x:Key="Brush.PrimaryLight" Color="#17384A" />
+    <SolidColorBrush x:Key="Brush.Link" Color="#6CC5E0" />
+    <SolidColorBrush x:Key="Brush.Accent" Color="#F2A541" />
+    <SolidColorBrush x:Key="Brush.AccentLight" Color="#3D3018" />
+    <SolidColorBrush x:Key="Brush.AccentText" Color="#F2B866" />
+    <SolidColorBrush x:Key="Brush.Background" Color="#0F1720" />
+    <SolidColorBrush x:Key="Brush.Surface" Color="#18222D" />
+    <SolidColorBrush x:Key="Brush.Column" Color="#1C2733" />
+    <SolidColorBrush x:Key="Brush.Chip" Color="#263442" />
+    <SolidColorBrush x:Key="Brush.Border" Color="#2E3B49" />
+    <SolidColorBrush x:Key="Brush.Text" Color="#E6EDF3" />
+    <SolidColorBrush x:Key="Brush.TextMuted" Color="#93A1AF" />
+    <SolidColorBrush x:Key="Brush.Danger" Color="#F0646A" />
+    <SolidColorBrush x:Key="Brush.DangerLight" Color="#3A1F22" />
+    <SolidColorBrush x:Key="Brush.Success" Color="#3DB87F" />
+    <SolidColorBrush x:Key="Brush.Input" Color="#111A23" />
+    <SolidColorBrush x:Key="Brush.Popup" Color="#1C2732" />
+    <SolidColorBrush x:Key="Brush.Hover" Color="#263442" />
+    <SolidColorBrush x:Key="Brush.Overlay" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="Brush.Scroll" Color="#3A4856" />
+    <SolidColorBrush x:Key="Brush.Canvas" Color="#121B25" />
+    <SolidColorBrush x:Key="Brush.Grid" Color="#2C3947" />
+    <SolidColorBrush x:Key="Brush.Selection" Color="#4FB4FF" />
+    <!-- Favorite star: a strong yellow on light, a soft pastel one on dark -->
+    <SolidColorBrush x:Key="Brush.Star" Color="#F3DC8C" />
+
+</ResourceDictionary>

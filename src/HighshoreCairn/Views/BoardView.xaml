@@ -1,0 +1,603 @@
+<UserControl x:Class="HighshoreCairn.Views.BoardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:HighshoreCairn.ViewModels"
+             xmlns:h="clr-namespace:HighshoreCairn.Helpers"
+             xmlns:v="clr-namespace:HighshoreCairn.Views">
+
+    <UserControl.Resources>
+
+        <!-- Checkable entries of the filter menus (Assignee / Priority / Tags / Columns) -->
+        <Style x:Key="FilterMenuItem" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+            <Setter Property="Header" Value="{Binding MenuLabel}" />
+            <Setter Property="IsCheckable" Value="True" />
+            <Setter Property="IsChecked" Value="{Binding IsSelected, Mode=TwoWay}" />
+            <Setter Property="StaysOpenOnClick" Value="True" />
+        </Style>
+
+        <!-- Entries of the card context sub-menus (inline edit) -->
+        <Style x:Key="ChoiceMenuItem" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+            <Setter Property="Header" Value="{Binding Label}" />
+            <Setter Property="IsChecked" Value="{Binding IsChecked, Mode=OneWay}" />
+            <Setter Property="Command" Value="{Binding Command}" />
+        </Style>
+
+        <!-- Small pill used for the due date -->
+        <Style x:Key="DueChip" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource Brush.Chip}" />
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.TextMuted}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="5,1" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsDueSoon}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource Brush.AccentLight}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.AccentText}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsOverdue}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Danger}" />
+                    <Setter Property="TextElement.Foreground" Value="White" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="CardBorder" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Style.Triggers>
+                <!-- Cards in a "done" column look finished: dimmed until the mouse is over them -->
+                <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                    <Setter Property="Opacity" Value="0.55" />
+                </DataTrigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
+                    <Setter Property="Opacity" Value="1" />
+                </Trigger>
+                <DataTrigger Binding="{Binding IsDragging}" Value="True">
+                    <Setter Property="Opacity" Value="0.35" />
+                </DataTrigger>
+                <!-- Reached from a reference ("go to task"): marked, not opened -->
+                <DataTrigger Binding="{Binding IsHighlighted}" Value="True">
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
+                    <Setter Property="BorderThickness" Value="2" />
+                    <Setter Property="Margin" Value="-1,-1,-1,7" />
+                    <Setter Property="Background" Value="{DynamicResource Brush.PrimaryLight}" />
+                    <Setter Property="Opacity" Value="1" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- A reference on a card: looks like a link, clicks do not start a drag of the card -->
+        <Style x:Key="RefLink" TargetType="Button">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Primary}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="0,1,0,1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Padding="3,1,5,1">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Chip}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ColumnBorder" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource Brush.Column}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Style.Triggers>
+                <!-- Custom column color (column menu > Colors) -->
+                <DataTrigger Binding="{Binding HasCustomBackground}" Value="True">
+                    <Setter Property="Background" Value="{Binding BackgroundColor, Converter={StaticResource HexToBrush}}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsDropTarget}" Value="True">
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Column name: theme text color unless a custom color was chosen -->
+        <Style x:Key="ColumnTitle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding HasCustomTitleColor}" Value="True">
+                    <Setter Property="Foreground" Value="{Binding TitleColor, Converter={StaticResource HexToBrush}}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Card title: struck through when the card is in a "done" column -->
+        <Style x:Key="CardTitle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                    <Setter Property="TextDecorations" Value="Strikethrough" />
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Tomato timer: red while focusing, green during a break -->
+        <Style x:Key="TomatoBody" TargetType="Ellipse">
+            <Setter Property="Fill" Value="{DynamicResource Brush.Danger}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsBreak}" Value="True">
+                    <Setter Property="Fill" Value="{DynamicResource Brush.Success}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="TomatoBar" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource Brush.Danger}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsBreak}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Success}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- ===================== A card on the board ===================== -->
+        <DataTemplate x:Key="CardTemplate" DataType="{x:Type vm:CardViewModel}">
+            <StackPanel>
+                <!-- Drop position indicator (above) -->
+                <Border Height="3" CornerRadius="2" Margin="0,-2,0,5" Background="{DynamicResource Brush.Primary}"
+                        Visibility="{Binding DropAbove, Converter={StaticResource BoolToVis}}" />
+
+                <Border Style="{StaticResource CardBorder}" ToolTip="{Binding ToolTip}"
+                        ToolTipService.InitialShowDelay="900"
+                        MouseLeftButtonDown="Card_MouseLeftButtonDown"
+                        MouseMove="Card_MouseMove"
+                        MouseLeftButtonUp="Card_MouseLeftButtonUp">
+                    <Border.ContextMenu>
+                        <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                            <MenuItem Header="Edit…" Command="{Binding EditCommand}" FontWeight="SemiBold" />
+                            <Separator />
+                            <MenuItem Header="Priority" ItemsSource="{Binding PriorityChoices}"
+                                      ItemContainerStyle="{StaticResource ChoiceMenuItem}" />
+                            <MenuItem Header="Assign to" ItemsSource="{Binding AssigneeChoices}"
+                                      ItemContainerStyle="{StaticResource ChoiceMenuItem}" />
+                            <MenuItem Header="Tags" ItemsSource="{Binding TagChoices}"
+                                      ItemContainerStyle="{StaticResource ChoiceMenuItem}" />
+                            <MenuItem Header="Move to" ItemsSource="{Binding MoveChoices}"
+                                      ItemContainerStyle="{StaticResource ChoiceMenuItem}" />
+                            <MenuItem Header="Subtask of" ItemsSource="{Binding ParentChoices}"
+                                      ItemContainerStyle="{StaticResource ChoiceMenuItem}" />
+                            <Separator />
+                            <MenuItem Header="Archive" Command="{Binding ArchiveCommand}" />
+                            <MenuItem Header="Delete…" Command="{Binding DeleteCommand}" />
+                        </ContextMenu>
+                    </Border.ContextMenu>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="5" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Priority color stripe -->
+                        <Border Grid.Column="0" CornerRadius="7,0,0,7"
+                                Background="{Binding PriorityColor, Converter={StaticResource HexToBrush}}" />
+
+                        <StackPanel Grid.Column="1" Margin="10,9,10,9">
+                            <!-- Dependency: the task this card is a subtask of -->
+                            <TextBlock Style="{StaticResource Muted}" FontSize="11" Margin="0,0,0,2" TextTrimming="CharacterEllipsis"
+                                       Visibility="{Binding HasParent, Converter={StaticResource BoolToVis}}"
+                                       ToolTip="This card is a subtask">
+                                <Run Text="↳" /> <Run Text="{Binding ParentTitle, Mode=OneWay}" />
+                            </TextBlock>
+
+                            <DockPanel>
+                                <!-- Completion circle: fills up with the checklist and the subtasks -->
+                                <h:ProgressRing DockPanel.Dock="Right" Width="16" Height="16" Margin="8,2,0,0" VerticalAlignment="Top"
+                                                Value="{Binding Progress, Mode=OneWay}" ToolTip="{Binding ProgressToolTip}"
+                                                ProgressBrush="{DynamicResource Brush.Primary}"
+                                                TrackBrush="{DynamicResource Brush.TextMuted}"
+                                                CompleteBrush="{DynamicResource Brush.Success}" />
+                                <TextBlock Style="{StaticResource CardTitle}" Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            </DockPanel>
+
+                            <TextBlock Style="{StaticResource Muted}" Text="{Binding DescriptionPreview}"
+                                       TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="34" Margin="0,3,0,0"
+                                       Visibility="{Binding HasDescription, Converter={StaticResource BoolToVis}}" />
+
+                            <!-- Tags -->
+                            <ItemsControl ItemsSource="{Binding Tags}" Margin="0,7,0,0"
+                                          Visibility="{Binding HasTags, Converter={StaticResource BoolToVis}}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="9" Padding="7,1" Margin="0,0,4,3"
+                                                Background="{Binding Color, Converter={StaticResource HexToBrush}}">
+                                            <TextBlock Text="{Binding Name}" Foreground="White" FontSize="11" FontWeight="SemiBold" />
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- References: the whiteboard element first, then the linked documents. Each one opens its target. -->
+                            <ItemsControl ItemsSource="{Binding References}" Margin="0,5,0,0" Focusable="False"
+                                          Visibility="{Binding HasReferences, Converter={StaticResource BoolToVis}}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource RefLink}" Command="{Binding OpenCommand}" ToolTip="{Binding ToolTip}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <!-- whiteboard element: a small shape; document: a sheet -->
+                                                <Path Data="M2,3.5 L10,3.5 L10,9.5 L2,9.5 Z M11.5,8 A3,3 0 1 0 14.9,11" Stroke="{DynamicResource Brush.TextMuted}" StrokeThickness="1.2"
+                                                      Width="16" Height="14" Margin="0,1,4,0" VerticalAlignment="Center"
+                                                      Visibility="{Binding IsWhiteboard, Converter={StaticResource BoolToVis}}" />
+                                                <Path Data="M3.5,1.5 L9,1.5 L12.5,5 L12.5,12.5 L3.5,12.5 Z M9,1.5 L9,5 L12.5,5" Stroke="{DynamicResource Brush.TextMuted}" StrokeThickness="1.2"
+                                                      Width="16" Height="14" Margin="0,1,4,0" VerticalAlignment="Center" StrokeLineJoin="Round"
+                                                      Visibility="{Binding IsDocument, Converter={StaticResource BoolToVis}}" />
+                                                <TextBlock x:Name="RefText" Text="{Binding Label}" FontSize="11.5" TextTrimming="CharacterEllipsis" MaxWidth="210"
+                                                           VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Button>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsMissing}" Value="True">
+                                                <Setter TargetName="RefText" Property="TextDecorations" Value="Strikethrough" />
+                                                <Setter TargetName="RefText" Property="Foreground" Value="{DynamicResource Brush.TextMuted}" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- Footer: due date and assignee on the right; the indicators on the left wrap if needed -->
+                            <DockPanel Margin="0,8,0,0">
+                                <h:Avatar DockPanel.Dock="Right" Size="22" VerticalAlignment="Bottom"
+                                          Initials="{Binding AssigneeInitials}" Color="{Binding AssigneeColor}" Image="{Binding AssigneeImage}"
+                                          ToolTip="{Binding AssigneeName}"
+                                          Visibility="{Binding HasAssignee, Converter={StaticResource BoolToVis}}" />
+
+                                <Border DockPanel.Dock="Right" Style="{StaticResource DueChip}" Margin="0,0,6,2" VerticalAlignment="Bottom"
+                                        Visibility="{Binding HasDue, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE787;" FontSize="11"
+                                                   VerticalAlignment="Center" Margin="0,0,4,0" />
+                                        <TextBlock Text="{Binding DueText}" FontSize="11" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Border>
+
+                                <WrapPanel VerticalAlignment="Bottom">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,10,2"
+                                                Visibility="{Binding HasPriority, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE7C1;" FontSize="12" VerticalAlignment="Center"
+                                                   Foreground="{Binding PriorityColor, Converter={StaticResource HexToBrush}}" />
+                                        <TextBlock Text="{Binding PriorityLabel}" FontSize="11" FontWeight="SemiBold" Margin="3,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{Binding PriorityColor, Converter={StaticResource HexToBrush}}" />
+                                    </StackPanel>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,10,2" ToolTip="Checklist"
+                                                Visibility="{Binding HasChecklist, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE73A;" FontSize="12" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource Brush.TextMuted}" />
+                                        <TextBlock Style="{StaticResource Muted}" Text="{Binding ChecklistText}" FontSize="11" Margin="3,0,0,0"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,10,2" ToolTip="Subtasks completed"
+                                                Visibility="{Binding HasSubtasks, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE8FD;" FontSize="12" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource Brush.TextMuted}" />
+                                        <TextBlock Style="{StaticResource Muted}" Text="{Binding SubtaskText}" FontSize="11" Margin="3,0,0,0"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,10,2" ToolTip="Comments"
+                                                Visibility="{Binding HasComments, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE90A;" FontSize="12" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource Brush.TextMuted}" />
+                                        <TextBlock Style="{StaticResource Muted}" Text="{Binding CommentCount}" FontSize="11" Margin="3,0,0,0"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </WrapPanel>
+                            </DockPanel>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Drop position indicator (end of the column) -->
+                <Border Height="3" CornerRadius="2" Margin="0,-3,0,6" Background="{DynamicResource Brush.Primary}"
+                        Visibility="{Binding DropBelow, Converter={StaticResource BoolToVis}}" />
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Background="{DynamicResource Brush.Background}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ===================== Header ===================== -->
+        <!-- Three parts: project on the left, timer in the middle of the window, buttons on the right. -->
+        <h:CenteredHeaderPanel Grid.Row="0" Margin="12,10,12,0" Gap="12" LeftMinWidth="270" NoticeMinWidth="46">
+
+            <!-- 1. Back, project icon and name, Roadmap -->
+            <DockPanel HorizontalAlignment="Left">
+                <Button DockPanel.Dock="Left" Style="{StaticResource Btn.Icon}" Command="{Binding BackCommand}"
+                        ToolTip="Back to projects" VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE72B;" />
+                </Button>
+
+                <Grid DockPanel.Dock="Left" Margin="8,0,10,0" VerticalAlignment="Center">
+                    <Border Width="10" Height="28" CornerRadius="3"
+                            Background="{Binding ProjectColor, Converter={StaticResource HexToBrush}}"
+                            Visibility="{Binding HasNoProjectIcon, Converter={StaticResource BoolToVis}}" />
+                    <!-- Project icon (when one is set) replaces the color bar -->
+                    <Border Width="30" Height="30" CornerRadius="6" Visibility="{Binding HasProjectIcon, Converter={StaticResource BoolToVis}}">
+                        <Border.Background>
+                            <ImageBrush ImageSource="{Binding ProjectIcon, Converter={StaticResource Base64ToImage}}" Stretch="UniformToFill"
+                                        RenderOptions.BitmapScalingMode="HighQuality" />
+                        </Border.Background>
+                    </Border>
+                </Grid>
+
+                <!-- The roadmap opens in a window of its own -->
+                <Button DockPanel.Dock="Right" Style="{StaticResource Btn}" Command="{Binding RoadmapCommand}" Margin="12,0,0,0" Padding="9,5" Focusable="False"
+                        VerticalAlignment="Center" ToolTip="Roadmap: tasks, milestones and releases on a timeline (opens in a window)">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="M2,4 L11,4 M5,8.5 L14,8.5 M3,13 L9,13" Stroke="{DynamicResource Brush.Primary}" StrokeThickness="2.4"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="16" Height="16" Margin="0,0,6,0" />
+                        <TextBlock Text="Roadmap" />
+                    </StackPanel>
+                </Button>
+
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource H1}" FontSize="18" Text="{Binding ProjectName}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Style="{StaticResource Muted}" Text="{Binding ProjectDescription}" TextTrimming="CharacterEllipsis"
+                               Visibility="{Binding HasDescription, Converter={StaticResource BoolToVis}}" />
+                </StackPanel>
+            </DockPanel>
+
+            <!-- 2. Tomato timer (Settings > Timer): in the middle of the window width -->
+            <Border Style="{StaticResource Card}" CornerRadius="8" VerticalAlignment="Center"
+                    DataContext="{Binding Pomodoro}" ToolTip="{Binding ToolTip}" ClipToBounds="True"
+                    Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" Margin="8,2,3,4">
+                        <!-- a small tomato -->
+                        <Canvas Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,7,0">
+                            <Ellipse Canvas.Left="1" Canvas.Top="4" Width="14" Height="11.5" Style="{StaticResource TomatoBody}" />
+                            <Path Data="M8,5.2 L5,3 L7.4,3.6 L8,1 L8.6,3.6 L11,3 Z" Fill="{DynamicResource Brush.Success}" />
+                        </Canvas>
+                        <!-- time, with the phase in small print below it (keeps the timer narrow) -->
+                        <StackPanel VerticalAlignment="Center" Margin="0,0,6,0" MinWidth="50">
+                            <TextBlock Text="{Binding TimeText}" FontFamily="Consolas, Courier New" FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Brush.Text}" LineHeight="15" LineStackingStrategy="BlockLineHeight" />
+                            <TextBlock FontSize="9.5" Foreground="{DynamicResource Brush.TextMuted}" LineHeight="11" LineStackingStrategy="BlockLineHeight">
+                                <Run Text="{Binding PhaseLabel, Mode=OneWay}" /> <Run Text="{Binding SessionText, Mode=OneWay}" />
+                            </TextBlock>
+                        </StackPanel>
+                        <Button Style="{StaticResource Btn.Icon}" Width="24" Height="24" Command="{Binding ToggleCommand}" ToolTip="{Binding ToggleToolTip}">
+                            <Grid>
+                                <Path Data="M6,4 L15,10 L6,16 Z" Fill="{DynamicResource Brush.Text}" Width="20" Height="20"
+                                      Visibility="{Binding IsPaused, Converter={StaticResource BoolToVis}}" />
+                                <Path Data="M5.5,4 L8.5,4 L8.5,16 L5.5,16 Z M11.5,4 L14.5,4 L14.5,16 L11.5,16 Z" Fill="{DynamicResource Brush.Text}" Width="20" Height="20"
+                                      Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}" />
+                            </Grid>
+                        </Button>
+                        <Button Style="{StaticResource Btn.Icon}" Width="24" Height="24" Command="{Binding ResetCommand}" ToolTip="Restart the current phase">
+                            <Path Data="M15.2,10.6 A5.4,5.4 0 1 1 13.2,5.9 M13.6,2.8 L13.5,6.2 L10.1,6" Stroke="{DynamicResource Brush.TextMuted}" StrokeThickness="1.5"
+                                  Width="20" Height="20" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                        </Button>
+                        <Button Style="{StaticResource Btn.Icon}" Width="24" Height="24" Command="{Binding SkipCommand}" ToolTip="Skip to the next phase">
+                            <Path Data="M5,4.5 L12,10 L5,15.5 Z M13.5,4.5 L15.2,4.5 L15.2,15.5 L13.5,15.5 Z" Fill="{DynamicResource Brush.TextMuted}" Width="20" Height="20" />
+                        </Button>
+                    </StackPanel>
+                    <!-- progress of the current phase -->
+                    <Border Height="2" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Style="{StaticResource TomatoBar}" RenderTransformOrigin="0,0.5">
+                        <Border.RenderTransform>
+                            <ScaleTransform ScaleX="{Binding Progress}" />
+                        </Border.RenderTransform>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- 3. Buttons, from the right: Settings, the area switch (same place in the three areas), then the
+                 Kanban buttons. -->
+            <DockPanel HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button DockPanel.Dock="Right" Style="{StaticResource Btn}" Content="Settings" Command="{Binding SettingsCommand}" VerticalAlignment="Center" />
+
+                <!-- Kanban / Whiteboard / Documentation switch: always right before Settings -->
+                <Border DockPanel.Dock="Right" Style="{StaticResource Card}" CornerRadius="8" Padding="2" Margin="0,0,10,0" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Style="{StaticResource ToolToggle}" GroupName="ProjectMode" Width="Auto" Height="26" Padding="12,0" Margin="0"
+                                     Content="Kanban" IsChecked="{Binding IsKanbanMode, Mode=OneWay}" Command="{Binding ShowKanbanCommand}" />
+                        <RadioButton Style="{StaticResource ToolToggle}" GroupName="ProjectMode" Width="Auto" Height="26" Padding="12,0" Margin="0"
+                                     Content="Whiteboard" IsChecked="{Binding IsWhiteboardMode, Mode=OneWay}" Command="{Binding ShowWhiteboardCommand}" />
+                        <RadioButton Style="{StaticResource ToolToggle}" GroupName="ProjectMode" Width="Auto" Height="26" Padding="12,0" Margin="0"
+                                     Content="Documentation" IsChecked="{Binding IsDocsMode, Mode=OneWay}" Command="{Binding ShowDocsCommand}" />
+                    </StackPanel>
+                </Border>
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center"
+                            Visibility="{Binding IsKanbanMode, Converter={StaticResource BoolToVis}}">
+                    <Button Style="{StaticResource Btn}" Command="{Binding AddColumnCommand}" Margin="0,0,6,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource Icon}" Text="&#xE710;" FontSize="11" Margin="0,0,6,0" />
+                            <TextBlock Text="Add Column" />
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource Btn}" Content="Tags" Command="{Binding ManageTagsCommand}" Margin="0,0,6,0" />
+                    <Button Style="{StaticResource Btn}" Content="{Binding ArchiveText}" Command="{Binding ArchiveCommand}" Margin="0,0,10,0" />
+                </StackPanel>
+            </DockPanel>
+
+            <!-- 4. Due date notification: between the timer and the buttons, the first to shorten when space is tight -->
+            <Grid HorizontalAlignment="Right" VerticalAlignment="Center"
+                  Visibility="{Binding IsKanbanMode, Converter={StaticResource BoolToVis}}">
+                <Button Style="{StaticResource Btn}" Command="{Binding ShowOverdueCommand}" Padding="8,4"
+                        Background="{DynamicResource Brush.DangerLight}" BorderBrush="{DynamicResource Brush.Danger}"
+                        Visibility="{Binding HasOverdue, Converter={StaticResource BoolToVis}}">
+                    <Button.ToolTip>
+                        <TextBlock>
+                            <Run Text="{Binding DueSummary, Mode=OneWay}" /><LineBreak /><Run Text="Click to show the overdue cards" />
+                        </TextBlock>
+                    </Button.ToolTip>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Style="{StaticResource Icon}" Text="&#xE7BA;" FontSize="12" Margin="0,0,6,0"
+                                   Foreground="{DynamicResource Brush.Danger}" />
+                        <TextBlock Text="{Binding DueSummary}" Foreground="{DynamicResource Brush.Danger}" FontSize="12"
+                                   TextTrimming="CharacterEllipsis" />
+                    </DockPanel>
+                </Button>
+                <TextBlock Style="{StaticResource Muted}" Text="{Binding DueSummary}" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis" ToolTip="{Binding DueSummary}"
+                           Visibility="{Binding HasOverdue, Converter={StaticResource InvBoolToVis}}" />
+            </Grid>
+        </h:CenteredHeaderPanel>
+
+        <!-- ===================== Filter toolbar (Kanban mode) ===================== -->
+        <Border Grid.Row="1" Style="{StaticResource Card}" Margin="12,10,12,8" Padding="8,6"
+                Visibility="{Binding IsKanbanMode, Converter={StaticResource BoolToVis}}">
+            <WrapPanel>
+                <!-- Full-text search (title + description) -->
+                <Border BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" Margin="0,2,8,2"
+                        Background="{DynamicResource Brush.Surface}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Icon}" Text="&#xE721;" FontSize="12" Margin="8,0,2,0"
+                                   Foreground="{DynamicResource Brush.TextMuted}" />
+                        <TextBox Width="190" BorderThickness="0" Background="Transparent"
+                                 Text="{Binding Filter.SearchText, UpdateSourceTrigger=PropertyChanged, Delay=200}"
+                                 ToolTip="Search in title and description" />
+                    </StackPanel>
+                </Border>
+
+                <Menu Background="Transparent" VerticalAlignment="Center" Margin="0,2,8,2">
+                    <MenuItem Header="{Binding Filter.AssigneeHeader}" HeaderStringFormat="{}{0} ▾" Padding="8,5"
+                              ItemsSource="{Binding Filter.Assignees}" ItemContainerStyle="{StaticResource FilterMenuItem}" />
+                    <MenuItem Header="{Binding Filter.PriorityHeader}" HeaderStringFormat="{}{0} ▾" Padding="8,5"
+                              ItemsSource="{Binding Filter.Priorities}" ItemContainerStyle="{StaticResource FilterMenuItem}" />
+                    <MenuItem Header="{Binding Filter.TagHeader}" HeaderStringFormat="{}{0} ▾" Padding="8,5"
+                              ItemsSource="{Binding Filter.Tags}" ItemContainerStyle="{StaticResource FilterMenuItem}" />
+                    <MenuItem Header="{Binding Filter.ColumnHeader}" HeaderStringFormat="{}{0} ▾" Padding="8,5"
+                              ItemsSource="{Binding Filter.Columns}" ItemContainerStyle="{StaticResource FilterMenuItem}" />
+                </Menu>
+
+                <ComboBox Width="140" Margin="0,2,8,2" VerticalAlignment="Center"
+                          ItemsSource="{Binding Filter.DueOptions}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                          SelectedValue="{Binding Filter.Due, Mode=TwoWay}" ToolTip="Filter by due date" />
+
+                <TextBlock Style="{StaticResource Muted}" Text="Sort" VerticalAlignment="Center" Margin="4,0,6,0" />
+                <ComboBox Width="130" Margin="0,2,4,2" VerticalAlignment="Center"
+                          ItemsSource="{Binding Filter.SortOptions}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                          SelectedValue="{Binding Filter.Sort, Mode=TwoWay}" />
+                <CheckBox Content="Reverse" IsChecked="{Binding Filter.Reverse, Mode=TwoWay}" VerticalAlignment="Center"
+                          Margin="2,0,14,0" />
+
+                <!-- Saved filters -->
+                <ComboBox Width="140" Margin="0,2,4,2" VerticalAlignment="Center"
+                          ItemsSource="{Binding SavedFilters}" DisplayMemberPath="Name"
+                          SelectedItem="{Binding SelectedSavedFilter, Mode=TwoWay}" ToolTip="Saved filters"
+                          Visibility="{Binding HasSavedFilters, Converter={StaticResource BoolToVis}}" />
+                <Button Style="{StaticResource Btn.Icon}" Command="{Binding DeleteSavedFilterCommand}" ToolTip="Delete the selected saved filter"
+                        Visibility="{Binding HasSelectedSavedFilter, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE74D;" FontSize="12" />
+                </Button>
+                <Button Style="{StaticResource Btn.Ghost}" Content="Save filter" Command="{Binding SaveFilterCommand}" Padding="8,5"
+                        VerticalAlignment="Center" ToolTip="Save the current filters and sort with a name" />
+                <Button Style="{StaticResource Btn.Ghost}" Content="Clear filters" Command="{Binding ClearFiltersCommand}" Padding="8,5"
+                        VerticalAlignment="Center" />
+            </WrapPanel>
+        </Border>
+
+        <!-- ===================== Columns ===================== -->
+        <ScrollViewer Focusable="False" Grid.Row="2" x:Name="BoardScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                      Padding="12,2,12,10"
+                      Visibility="{Binding IsKanbanMode, Converter={StaticResource BoolToVis}}">
+            <ItemsControl ItemsSource="{Binding Columns}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:ColumnViewModel}">
+                        <Border Style="{StaticResource ColumnBorder}" Width="300" Margin="0,0,12,0"
+                                AllowDrop="True" DragOver="Column_DragOver" DragLeave="Column_DragLeave" Drop="Column_Drop"
+                                Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}">
+                            <DockPanel>
+                                <!-- Column header: name, count, menu -->
+                                <Border DockPanel.Dock="Top" x:Name="ColumnHeader" Background="Transparent" Padding="12,8,6,6">
+                                    <Border.ContextMenu>
+                                        <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                            <MenuItem Header="Add Card" Command="{Binding AddCardCommand}" />
+                                            <Separator />
+                                            <MenuItem Header="Rename…" Command="{Binding RenameCommand}" />
+                                            <MenuItem Header="Colors…" Command="{Binding EditStyleCommand}" />
+                                            <MenuItem Header="Move Left" Command="{Binding MoveLeftCommand}" />
+                                            <MenuItem Header="Move Right" Command="{Binding MoveRightCommand}" />
+                                            <MenuItem Header="Done column (no overdue alerts)" IsCheckable="True"
+                                                      IsChecked="{Binding IsDone, Mode=TwoWay}" />
+                                            <Separator />
+                                            <MenuItem Header="Delete…" Command="{Binding DeleteCommand}" />
+                                        </ContextMenu>
+                                    </Border.ContextMenu>
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="26" Height="26"
+                                                Click="ColumnMenu_Click" Tag="{Binding ElementName=ColumnHeader}" ToolTip="Column menu">
+                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE712;" />
+                                        </Button>
+                                        <Border DockPanel.Dock="Right" Background="{DynamicResource Brush.Surface}" CornerRadius="9"
+                                                Padding="7,1" Margin="6,0" VerticalAlignment="Center" ToolTip="Cards in this column">
+                                            <TextBlock Text="{Binding CountText}" FontSize="11" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource Brush.TextMuted}" />
+                                        </Border>
+                                        <TextBlock Style="{StaticResource ColumnTitle}" Text="{Binding Name}" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </DockPanel>
+                                </Border>
+
+                                <Button DockPanel.Dock="Bottom" Style="{StaticResource Btn.Ghost}" Margin="6,2,6,6"
+                                        HorizontalContentAlignment="Left" Command="{Binding AddCardCommand}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE710;" FontSize="11" Margin="0,0,6,0" />
+                                        <TextBlock Text="Add Card" />
+                                    </StackPanel>
+                                </Button>
+
+                                <!-- Background="Transparent" makes the empty area a valid drop zone -->
+                                <ScrollViewer Focusable="False" VerticalScrollBarVisibility="Auto" Padding="8,2,8,0" Background="Transparent">
+                                    <ItemsControl ItemsSource="{Binding VisibleCards}" ItemTemplate="{StaticResource CardTemplate}" />
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- ===================== Whiteboard mode ===================== -->
+        <Grid Grid.Row="1" Grid.RowSpan="2" Margin="12,10,12,10"
+              Visibility="{Binding IsWhiteboardMode, Converter={StaticResource BoolToVis}}">
+            <v:WhiteboardView DataContext="{Binding Whiteboard}" />
+        </Grid>
+
+        <!-- ===================== Documentation mode ===================== -->
+        <Grid Grid.Row="1" Grid.RowSpan="2" Margin="12,10,12,10"
+              Visibility="{Binding IsDocsMode, Converter={StaticResource BoolToVis}}">
+            <v:DocsView DataContext="{Binding Docs}" />
+        </Grid>
+    </Grid>
+</UserControl>

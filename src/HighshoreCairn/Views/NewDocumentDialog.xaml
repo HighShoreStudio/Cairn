@@ -1,0 +1,38 @@
+<Window x:Class="HighshoreCairn.Views.NewDocumentDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding Heading}"
+        Style="{StaticResource WindowBase}"
+        Width="440" SizeToContent="Height" ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        FocusManager.FocusedElement="{Binding ElementName=NameBox}">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Style="{StaticResource DialogFooter}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Style="{StaticResource Btn}" Content="Cancel" IsCancel="True" MinWidth="84" Margin="0,0,8,0" />
+                <Button Style="{StaticResource Btn.Primary}" Content="Create" IsDefault="True" Command="{Binding CreateCommand}" MinWidth="84" />
+            </StackPanel>
+        </Border>
+        <StackPanel Margin="18,14,18,18">
+            <TextBlock Style="{StaticResource H2}" Text="{Binding Heading}" />
+            <TextBlock Style="{StaticResource Muted}" Margin="0,2,0,0">
+                <Run Text="Folder:" /> <Run Text="{Binding FolderLabel, Mode=OneWay}" />
+            </TextBlock>
+
+            <TextBlock Style="{StaticResource Label}" Text="Name *" />
+            <TextBox x:Name="NameBox" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="The document is saved in the docs folder with this name (.md for a document, .rtf for rich text)" />
+
+            <StackPanel Visibility="{Binding ShowTemplates, Converter={StaticResource BoolToVis}}">
+                <TextBlock Style="{StaticResource Label}" Text="Start from" />
+                <ComboBox ItemsSource="{Binding Templates}" DisplayMemberPath="Name" SelectedItem="{Binding Template, Mode=TwoWay}" />
+            </StackPanel>
+            <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,10,0,0"
+                       Text="A rich text document (.rtf) keeps fonts, sizes, colors and alignment, and opens in Word and WordPad too. It can be converted to markdown later (More > Convert)."
+                       Visibility="{Binding IsRich, Converter={StaticResource BoolToVis}}" />
+
+            <TextBlock Style="{StaticResource ErrorText}" Text="{Binding Error}"
+                       Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+        </StackPanel>
+    </DockPanel>
+</Window>

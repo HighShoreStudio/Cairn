@@ -1,0 +1,26 @@
+<Window x:Class="HighshoreCairn.Views.PromptDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:h="clr-namespace:HighshoreCairn.Helpers"
+        Title="{Binding Title}"
+        Style="{StaticResource WindowBase}"
+        Width="400" SizeToContent="Height" ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Loaded="OnLoaded">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Style="{StaticResource DialogFooter}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Style="{StaticResource Btn}" Content="Cancel" IsCancel="True" MinWidth="84" Margin="0,0,8,0" />
+                <Button Style="{StaticResource Btn.Primary}" Content="OK" IsDefault="True" Command="{Binding OkCommand}" MinWidth="84" />
+            </StackPanel>
+        </Border>
+        <StackPanel Margin="16,14,16,16">
+            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,0,0,8" />
+            <TextBox x:Name="ValueBox" Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                     Visibility="{Binding IsText, Converter={StaticResource BoolToVis}}" />
+            <PasswordBox x:Name="PasswordInput" h:PasswordBoxHelper.Attach="True"
+                         h:PasswordBoxHelper.BoundPassword="{Binding Value, Mode=TwoWay}"
+                         Visibility="{Binding IsPassword, Converter={StaticResource BoolToVis}}" />
+        </StackPanel>
+    </DockPanel>
+</Window>

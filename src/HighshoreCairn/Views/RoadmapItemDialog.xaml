@@ -1,0 +1,55 @@
+<Window x:Class="HighshoreCairn.Views.RoadmapItemDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding WindowTitle}"
+        Style="{StaticResource WindowBase}"
+        Width="460" SizeToContent="Height" ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        FocusManager.FocusedElement="{Binding ElementName=NameBox}">
+    <!-- A task of the Custom row of the roadmap. DataContext = RoadmapItemEditorViewModel. -->
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Style="{StaticResource DialogFooter}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Style="{StaticResource Btn}" Content="Cancel" IsCancel="True" MinWidth="84" Margin="0,0,8,0" />
+                <Button Style="{StaticResource Btn.Primary}" Content="Save" IsDefault="True" Command="{Binding SaveCommand}" MinWidth="84" />
+            </StackPanel>
+        </Border>
+        <StackPanel Margin="18,14,18,18">
+            <TextBlock Style="{StaticResource H2}" Text="{Binding WindowTitle}" />
+            <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,2,0,0"
+                       Text="This task exists only in the roadmap. Without a due date the bar is plain, from start to end." />
+
+            <TextBlock Style="{StaticResource Label}" Text="Name *" />
+            <TextBox x:Name="NameBox" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock Style="{StaticResource Label}" Text="Start date *" />
+            <DatePicker SelectedDate="{Binding Start, Mode=TwoWay}" VerticalContentAlignment="Center" />
+
+            <TextBlock Style="{StaticResource Label}" Text="Due date" ToolTip="Optional: the planned end. Finishing after it shows a striped delay." />
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Command="{Binding ClearDueCommand}" ToolTip="Remove the due date"
+                        Visibility="{Binding HasDue, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE711;" FontSize="10" />
+                </Button>
+                <DatePicker SelectedDate="{Binding Due, Mode=TwoWay}" VerticalContentAlignment="Center" />
+            </DockPanel>
+
+            <TextBlock Style="{StaticResource Label}" Text="End date" ToolTip="When it was actually completed. Leave empty while it is still open." />
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Command="{Binding ClearEndCommand}" ToolTip="Remove the end date"
+                        Visibility="{Binding HasEnd, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE711;" FontSize="10" />
+                </Button>
+                <DatePicker SelectedDate="{Binding End, Mode=TwoWay}" VerticalContentAlignment="Center" />
+            </DockPanel>
+
+            <TextBlock Style="{StaticResource Label}" Text="Note" />
+            <TextBox Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"
+                     MinHeight="64" MaxHeight="150" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top"
+                     ToolTip="Only shown here" />
+
+            <TextBlock Style="{StaticResource ErrorText}" Text="{Binding Error}"
+                       Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+        </StackPanel>
+    </DockPanel>
+</Window>

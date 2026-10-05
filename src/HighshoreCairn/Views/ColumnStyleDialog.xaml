@@ -1,0 +1,79 @@
+<Window x:Class="HighshoreCairn.Views.ColumnStyleDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:HighshoreCairn.ViewModels"
+        Title="Column colors"
+        Style="{StaticResource WindowBase}"
+        Width="820" SizeToContent="Height" ResizeMode="NoResize"
+        ShowInTaskbar="False">
+    <Window.Resources>
+        <!-- The colors of a column for one theme: preview + the two pickers.
+             The preview is always drawn with the colors of its own theme. -->
+        <DataTemplate DataType="{x:Type vm:ColumnThemeStyle}">
+            <StackPanel>
+                <TextBlock Style="{StaticResource H2}" Text="{Binding Heading}" Margin="0,0,0,8" />
+
+                <Border CornerRadius="10" Padding="12" Background="{Binding PageColor, Converter={StaticResource HexToBrush}}"
+                        BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
+                    <Border CornerRadius="10" Padding="14,10" Height="74"
+                            Background="{Binding PreviewBackground, Converter={StaticResource HexToBrush}}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding DataContext.ColumnName, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{Binding PreviewTitleColor, Converter={StaticResource HexToBrush}}" />
+                            <Border CornerRadius="6" Height="22" Margin="0,8,0,0" BorderThickness="1"
+                                    Background="{Binding CardColor, Converter={StaticResource HexToBrush}}"
+                                    BorderBrush="{Binding CardBorderColor, Converter={StaticResource HexToBrush}}" />
+                        </StackPanel>
+                    </Border>
+                </Border>
+
+                <DockPanel Margin="0,14,0,4">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Link}" Padding="6,1" Content="Reset to default"
+                            Command="{Binding ResetBackgroundCommand}" />
+                    <TextBlock Style="{StaticResource Label}" Margin="0" Text="Background color" VerticalAlignment="Center" />
+                </DockPanel>
+                <ListBox Style="{StaticResource SwatchList}" ItemsSource="{Binding BackgroundColors}"
+                         SelectedItem="{Binding Background, Mode=TwoWay}" />
+                <TextBox Text="{Binding BackgroundHex, UpdateSourceTrigger=PropertyChanged}" Width="100" HorizontalAlignment="Left"
+                         Margin="2,6,0,0" ToolTip="Custom color as hex, e.g. #E3F0F4. Empty = default." />
+
+                <DockPanel Margin="0,14,0,4">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Link}" Padding="6,1" Content="Reset to default"
+                            Command="{Binding ResetTitleCommand}" />
+                    <TextBlock Style="{StaticResource Label}" Margin="0" Text="Name color" VerticalAlignment="Center" />
+                </DockPanel>
+                <ListBox Style="{StaticResource SwatchList}" ItemsSource="{Binding TitleColors}"
+                         SelectedItem="{Binding TitleColor, Mode=TwoWay}" />
+                <TextBox Text="{Binding TitleHex, UpdateSourceTrigger=PropertyChanged}" Width="100" HorizontalAlignment="Left"
+                         Margin="2,6,0,0" ToolTip="Custom color as hex, e.g. #16324F. Empty = default." />
+            </StackPanel>
+        </DataTemplate>
+    </Window.Resources>
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Style="{StaticResource DialogFooter}">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Style="{StaticResource Btn}" Content="Cancel" IsCancel="True" MinWidth="84" Margin="0,0,8,0" />
+                    <Button Style="{StaticResource Btn.Primary}" Content="Save" IsDefault="True" Command="{Binding SaveCommand}" MinWidth="84" />
+                </StackPanel>
+                <TextBlock Foreground="{DynamicResource Brush.Danger}" Text="{Binding Error}" VerticalAlignment="Center" TextWrapping="Wrap"
+                           Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+            </DockPanel>
+        </Border>
+        <StackPanel Margin="18,14,18,18">
+            <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,12"
+                       Text="The column keeps two sets of colors: one is used with the light theme, the other with the dark theme." />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="28" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <ContentControl Grid.Column="0" Content="{Binding Light}" Focusable="False" />
+                <Border Grid.Column="1" Width="1" HorizontalAlignment="Center" Background="{DynamicResource Brush.Border}" />
+                <ContentControl Grid.Column="2" Content="{Binding Dark}" Focusable="False" />
+            </Grid>
+        </StackPanel>
+    </DockPanel>
+</Window>
